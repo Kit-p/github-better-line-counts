@@ -47,9 +47,11 @@ options:
   customLists:
     title: Generated Files
     description1: Use
-    description2: minimatch
-    description3: glob patterns to mark files as generated across all repos. Generated files are subtracted from the line counts, in addition to files marked as linguist-generated in the repo's .gitattributes.
+    description2: .gitignore-style
+    description3: patterns to mark files as generated across all repos. Generated files are subtracted from the line counts, in addition to files marked as linguist-generated in the repo's .gitattributes.
     allRepos: All Repos
+    restoreDefaults: Restore Defaults
+    restoreDefaultsConfirm: Replace the generated patterns with the defaults? Your edits to the list will be lost.
     customRepoPlaceholder: |
       Enter glob patterns:
       *.lock

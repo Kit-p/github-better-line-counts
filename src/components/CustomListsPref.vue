@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed } from "vue";
+import IMdiRestore from "~icons/mdi/restore";
 import type { CustomLists } from "@/utils/storage";
 import CustomListItem from "./CustomListItem.vue";
 
@@ -17,6 +18,14 @@ const all = computed({
   },
 });
 
+// In-page confirmation: browser dialogs are suppressed in embedded options pages.
+const restoreDialog = useTemplateRef<HTMLDialogElement>("restoreDialog");
+
+function restoreDefaults() {
+  all.value = DEFAULT_CUSTOM_LIST_ALL;
+  restoreDialog.value?.close();
+}
+
 const { t } = i18n;
 </script>
 
@@ -31,7 +40,7 @@ const { t } = i18n;
         {{ t("options.customLists.description1") }}
         <a
           class="link link-secondary"
-          href="https://github.com/isaacs/minimatch#features"
+          href="https://git-scm.com/docs/gitignore#_pattern_format"
           target="_blank"
           >{{ t("options.customLists.description2") }}</a
         >
@@ -42,7 +51,37 @@ const { t } = i18n;
 
     <!-- All Repos -->
     <CustomListItem v-model:value="all">{{
-      i18n.t("options.customLists.allRepos")
+      t("options.customLists.allRepos")
     }}</CustomListItem>
+
+    <div>
+      <button
+        class="btn btn-sm btn-ghost"
+        type="button"
+        @click="restoreDialog?.showModal()"
+      >
+        <i-mdi-restore />
+        {{ t("options.customLists.restoreDefaults") }}
+      </button>
+    </div>
+
+    <dialog ref="restoreDialog" class="modal">
+      <div class="modal-box">
+        <p class="font-bold text-lg">
+          {{ t("options.customLists.restoreDefaults") }}
+        </p>
+        <p class="py-4">
+          {{ t("options.customLists.restoreDefaultsConfirm") }}
+        </p>
+        <div class="modal-action">
+          <button class="btn" type="button" @click="restoreDialog?.close()">
+            {{ t("cancel") }}
+          </button>
+          <button class="btn btn-error" type="button" @click="restoreDefaults">
+            {{ t("options.customLists.restoreDefaults") }}
+          </button>
+        </div>
+      </div>
+    </dialog>
   </li>
 </template>
