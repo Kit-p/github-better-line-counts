@@ -131,7 +131,11 @@ export function createBreakdownCard(rows: BreakdownRow[]): HTMLElement {
  * "+additions −deletions ⌁generated" cluster rather than on whichever element the pointer is over.
  */
 function getUnionRect(anchors: HTMLElement[]) {
-  const rects = anchors.map((anchor) => anchor.getBoundingClientRect());
+  const all = anchors.map((anchor) => anchor.getBoundingClientRect());
+  // Detached or hidden anchors report an empty rectangle at the page origin and would drag the
+  // card away from the visible counts.
+  const visible = all.filter((rect) => rect.width > 0 || rect.height > 0);
+  const rects = visible.length > 0 ? visible : all;
   return {
     left: Math.min(...rects.map((rect) => rect.left)),
     right: Math.max(...rects.map((rect) => rect.right)),

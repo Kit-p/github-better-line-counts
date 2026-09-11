@@ -103,8 +103,9 @@ export function createDiffComponent(options: {
       // Show the breakdown of the non-generated lines when hovering over any of the counts
 
       if (showBreakdown) {
+        // The generated element is only in the page when the spinner found a spot.
         const anchors = [additions, deletions, generated].filter(
-          (element): element is HTMLElement => !!element,
+          (element): element is HTMLElement => !!element?.isConnected,
         );
         mountBreakdownCard(anchors, getBreakdownRows(stats, categories));
       }

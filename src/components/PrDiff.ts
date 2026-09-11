@@ -14,8 +14,8 @@ export const PrDiff = createDiffComponent({
       "*[data-component=PH_Navigation] .f6.text-bold.fgColor-danger",
     ),
   addSpinnerToPage(spinner) {
-    const deletions = this.getDeletionsElement();
-    deletions?.replaceWith(deletions, spinner);
+    // GitHub omits the deletions count when it is zero.
+    (this.getDeletionsElement() ?? this.getAdditionsElement())?.after(spinner);
   },
   getAdditionsText: (count) => i18n.t("diffs.additionsSymbol", [count]),
   getDeletionsText: (count) => i18n.t("diffs.deletionsSymbol", [count]),

@@ -312,6 +312,18 @@ describe("mountBreakdownCard", () => {
     expect(card.style.top).toBe("144px"); // 200 - 6 - 50
   });
 
+  it("should ignore anchors that are not laid out", () => {
+    window.innerWidth = 1024;
+    window.innerHeight = 768;
+    // A detached element reports an empty rectangle at the page origin.
+    const { anchors, card } = mount([rect(100, 200, 40, 20), rect(0, 0, 0, 0)]);
+
+    hover(anchors[0]!);
+
+    expect(card.style.left).toBe("20px"); // 120 - 200 / 2
+    expect(card.style.top).toBe("144px");
+  });
+
   it("should fall back to below the anchors when there is no room above", () => {
     window.innerWidth = 1024;
     window.innerHeight = 768;
