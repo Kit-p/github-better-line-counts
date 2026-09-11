@@ -2,10 +2,13 @@
 import draggable from "vuedraggable";
 import IMdiPlus from "~icons/mdi/plus";
 import IMdiRestore from "~icons/mdi/restore";
+import IMdiPlaylistPlus from "~icons/mdi/playlist-plus";
 import BreakdownCategoryItem from "./BreakdownCategoryItem.vue";
 import {
   DEFAULT_BREAKDOWN_CATEGORIES,
+  PRESET_CATEGORIES,
   createBreakdownCategory,
+  pickCategoryColor,
   type BreakdownCategory,
 } from "@/utils/breakdown";
 
@@ -38,6 +41,22 @@ function moveCategory(index: number, offset: number) {
   next.splice(index, 1);
   next.splice(target, 0, moved);
   categories.value = next;
+}
+
+const usedColors = computed(() =>
+  categories.value.map((category) => category.color),
+);
+
+function hasPreset(preset: BreakdownCategory): boolean {
+  return categories.value.some((category) => category.id === preset.id);
+}
+
+function addPreset(preset: BreakdownCategory) {
+  if (hasPreset(preset)) return;
+  categories.value = [
+    ...categories.value,
+    { ...preset, color: pickCategoryColor(usedColors.value) },
+  ];
 }
 
 function addCategory() {
@@ -112,6 +131,27 @@ const { t } = i18n;
         <i-mdi-plus />
         {{ t("options.breakdown.addCategory") }}
       </button>
+      <div class="dropdown">
+        <div tabindex="0" role="button" class="btn btn-sm">
+          <i-mdi-playlist-plus />
+          {{ t("options.breakdown.addPreset") }}
+        </div>
+        <ul
+          tabindex="0"
+          class="dropdown-content menu z-10 mt-1 w-56 rounded-box border bg-base-100 p-2 shadow"
+        >
+          <li v-for="preset in PRESET_CATEGORIES" :key="preset.id">
+            <button
+              type="button"
+              :disabled="hasPreset(preset)"
+              @click="addPreset(preset)"
+            >
+              <span>{{ preset.icon }}</span>
+              <span class="flex-1">{{ preset.name }}</span>
+            </button>
+          </li>
+        </ul>
+      </div>
       <button
         class="btn btn-sm btn-ghost"
         type="button"

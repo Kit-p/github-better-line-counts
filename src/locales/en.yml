@@ -61,12 +61,29 @@ options:
     description3: . Choose what happens to files carrying each attribute. These declarations take precedence over the pattern lists.
     targetGenerated: Generated (subtract from the counts)
     targetNone: No special handling
+  pathTester:
+    title: Path Tester
+    description: Type a file path to see where the lists above would put it. Attributes from a repository's .gitattributes are not considered here.
+    placeholder: src/components/Button.test.tsx
+    generated: Generated (subtracted from the counts)
+    other: Other
+    matched: "Matched: $1"
+    noMatch: No pattern matched
+  transfer:
+    title: Import & Export
+    description: Save every setting except the access token to a file, or load them from one. Importing replaces the form; click Save Changes to keep the result.
+    export: Export Settings
+    import: Import Settings…
+    importAction: Replace Settings
+    importConfirm: Replace the current settings with the imported file? Nothing is saved until you click Save Changes.
+    invalidFile: "This file could not be imported: $1"
   breakdown:
     title: Breakdown
     description: Group the remaining, non-generated lines into categories such as tests, docs, or configs. Categories never change the line counts. Hover over the counts to see how the lines are split up.
     enable: Show the breakdown when hovering over the line counts
     orderHint: Files are matched against the categories from top to bottom and the first match wins. Files that match no category are counted as "Other".
     addCategory: Add Category
+    addPreset: Add Preset
     restoreDefaults: Restore Defaults
     restoreDefaultsConfirm: Replace all categories with the defaults? Any categories you've added or edited will be lost.
     nameLabel: Name

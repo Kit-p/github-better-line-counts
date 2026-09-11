@@ -4,6 +4,8 @@ import ShowGeneratedCountPref from "./ShowGeneratedCountPref.vue";
 import CustomListsPref from "./CustomListsPref.vue";
 import BreakdownPref from "./BreakdownPref.vue";
 import LinguistPref from "./LinguistPref.vue";
+import PathTesterPref from "./PathTesterPref.vue";
+import SettingsTransferPref from "./SettingsTransferPref.vue";
 import {
   hideGeneratedLineCountStorage,
   type CustomLists,
@@ -15,6 +17,7 @@ import {
 } from "@/utils/storage";
 import type { BreakdownCategory } from "@/utils/breakdown";
 import type { LinguistMappings } from "@/utils/linguist";
+import type { TransferableSettings } from "@/utils/settingsTransfer";
 
 const { state, hasChanges, reset, saveChanges } = useForm<{
   hideGeneratedLineCount: boolean;
@@ -48,6 +51,19 @@ const { state, hasChanges, reset, saveChanges } = useForm<{
   },
 );
 
+const transferable = computed<TransferableSettings>(() => ({
+  hideGeneratedLineCount: state.hideGeneratedLineCount,
+  customLists: state.customLists,
+  showBreakdown: state.showBreakdown,
+  breakdownCategories: state.breakdownCategories,
+  linguistMappings: state.linguistMappings,
+}));
+
+// Imported settings replace the form; they are persisted when the user saves.
+function applyImport(settings: TransferableSettings) {
+  Object.assign(state, settings);
+}
+
 const { t } = i18n;
 </script>
 
@@ -66,6 +82,12 @@ const { t } = i18n;
       v-model:mappings="state.linguistMappings"
       :categories="state.breakdownCategories"
     />
+    <PathTesterPref
+      :generated="state.customLists.all"
+      :categories="state.breakdownCategories"
+      :linguist="state.linguistMappings"
+    />
+    <SettingsTransferPref :settings="transferable" @import="applyImport" />
 
     <div
       class="fixed inset-x-0 bottom-0 bg-base-100 flex gap-4 p-4 border-t border-neutral border-opacity-10"
