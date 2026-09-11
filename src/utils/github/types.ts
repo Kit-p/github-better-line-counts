@@ -26,6 +26,10 @@ export interface Commit {
   files: DiffEntry[];
 }
 
+export interface Repository {
+  default_branch: string;
+}
+
 export interface Comparison {
   files: DiffEntry[];
 }

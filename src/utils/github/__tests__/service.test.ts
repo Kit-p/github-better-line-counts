@@ -24,6 +24,7 @@ function file(filename: string, additions: number, deletions: number) {
 function createFakeApi(files: DiffEntry[], gitattributes?: string) {
   return {
     getUser: vi.fn(),
+    getRepo: vi.fn().mockResolvedValue({ default_branch: "main" }),
     getGitAttributesFile: vi.fn().mockResolvedValue(gitattributes),
     getPr: vi.fn().mockResolvedValue({
       head: { sha: "abc123" },
@@ -31,9 +32,9 @@ function createFakeApi(files: DiffEntry[], gitattributes?: string) {
       deletions: 0,
       changed_files: files.length,
     }),
-    getCommit: vi.fn(),
+    getCommit: vi.fn().mockResolvedValue({ sha: "base123", files }),
     getAllPrFiles: vi.fn().mockResolvedValue(files),
-    compareCommits: vi.fn(),
+    compareCommits: vi.fn().mockResolvedValue({ files }),
   } satisfies Record<keyof GithubApi, unknown> as unknown as GithubApi;
 }
 
@@ -175,6 +176,49 @@ describe("GithubService", () => {
     expect(result.breakdown.tests).toMatchObject({ additions: 5, files: 1 });
     expect(result.exclude).toMatchObject({ files: 0 });
     expect(result.other).toMatchObject({ additions: 100, files: 1 });
+  });
+
+  it("should compare against the default branch when the URL only names the head", async () => {
+    const api = createFakeApi(files, gitattributes);
+    const service = createGithubService(api);
+
+    const result = await service.recalculateDiff({
+      mountId: 1,
+      type: "compare",
+      owner: "owner",
+      repo: "repo",
+      head: "feat/foo",
+    });
+
+    expect(api.getRepo).toHaveBeenCalledWith(
+      expect.objectContaining({ owner: "owner", repo: "repo" }),
+    );
+    expect(api.getCommit).toHaveBeenCalledWith(
+      expect.objectContaining({ ref: "main" }),
+    );
+    expect(api.compareCommits).toHaveBeenCalledWith(
+      expect.objectContaining({ base: "main", head: "feat/foo" }),
+    );
+    expect(result.include.files).toBe(4);
+  });
+
+  it("should not look up the repository when the base is in the URL", async () => {
+    const api = createFakeApi(files, gitattributes);
+    const service = createGithubService(api);
+
+    await service.recalculateDiff({
+      mountId: 1,
+      type: "compare",
+      owner: "owner",
+      repo: "repo",
+      base: "release",
+      head: "feat/foo",
+    });
+
+    expect(api.getRepo).not.toHaveBeenCalled();
+    expect(api.compareCommits).toHaveBeenCalledWith(
+      expect.objectContaining({ base: "release", head: "feat/foo" }),
+    );
   });
 
   it("should reuse the cached result for the same commit", async () => {

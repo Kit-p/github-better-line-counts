@@ -52,11 +52,27 @@ export function createGithubService(api: GithubApi): GithubService {
   }
 
   /**
+   * Fill in the base of a comparison when the URL only named the head, which GitHub does when the
+   * base is the repository's default branch.
+   */
+  async function resolveOptions(
+    options: RecalculateOptions,
+  ): Promise<ResolvedOptions> {
+    if (options.type !== "compare" || options.base !== undefined) {
+      return options as ResolvedOptions;
+    }
+    const repository = await api.getRepo(options);
+    logger.debug(
+      "Comparing against the default branch:",
+      repository.default_branch,
+    );
+    return { ...options, base: repository.default_branch };
+  }
+
+  /**
    * Get the commit hash for the current page. Used to look up gitattributes.
    */
-  async function getCurrentCommit(
-    options: RecalculateOptions,
-  ): Promise<string> {
+  async function getCurrentCommit(options: ResolvedOptions): Promise<string> {
     if (options.type === "pr") {
       const fullPr = await api.getPr(options);
       logger.debug("Full PR:", fullPr);
@@ -70,10 +86,7 @@ export function createGithubService(api: GithubApi): GithubService {
     }
 
     if (options.type === "compare") {
-      const fullCommit = await api.getCommit({
-        ...options,
-        ref: options.commitRefs[0],
-      });
+      const fullCommit = await api.getCommit({ ...options, ref: options.base });
       logger.debug("Full base commit:", fullCommit);
       return fullCommit.sha;
     }
@@ -98,7 +111,7 @@ export function createGithubService(api: GithubApi): GithubService {
   }
 
   async function getChangedFiles(
-    options: RecalculateOptions,
+    options: ResolvedOptions,
   ): Promise<DiffEntry[]> {
     if (options.type === "pr") return api.getAllPrFiles(options);
 
@@ -115,25 +128,23 @@ export function createGithubService(api: GithubApi): GithubService {
     throw Error(`Not implemented: getChangedFiles(${JSON.stringify(options)})`);
   }
 
-  function getCacheKey(
-    currentRef: string,
-    options: RecalculateOptions,
-  ): string {
+  function getCacheKey(currentRef: string, options: ResolvedOptions): string {
     if (options.type === "compare") {
-      return `${options.commitRefs[0]}...${options.commitRefs[1]}`;
+      return `${options.base}...${options.head}`;
     }
     return currentRef;
   }
 
   return {
-    async recalculateDiff(options) {
+    async recalculateDiff(rawOptions) {
       // Cache the result if the same content script tries to get the result multiple times.
-      const mounted = mountCache[options.mountId];
+      const mounted = mountCache[rawOptions.mountId];
       if (mounted) {
         logger.debug("[recalculateDiff] Using mount cache");
         return mounted;
       }
 
+      const options = await resolveOptions(rawOptions);
       const ref = await getCurrentCommit(options);
       const cacheKey = getCacheKey(ref, options);
       const cached = await commitHashDiffsCache.get(cacheKey);
@@ -238,8 +249,21 @@ export interface RecalculateCompareOptions {
   type: "compare";
   owner: string;
   repo: string;
-  commitRefs: [string, string];
+  /**
+   * The base ref. Undefined when the page compares against the default branch, whose name is
+   * looked up from the repository.
+   */
+  base?: string;
+  head: string;
 }
+
+/**
+ * Options with the compare base filled in.
+ */
+type ResolvedOptions =
+  | RecalculatePrOptions
+  | RecalculateCommitOptions
+  | (RecalculateCompareOptions & { base: string });
 
 export interface RecalculateResult {
   /**

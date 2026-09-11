@@ -30,10 +30,10 @@ function main() {
       CommitDiff,
     );
 
-  const commitRefs = getCurrentCompare();
-  if (commitRefs)
+  const compare = getCurrentCompare();
+  if (compare)
     return replaceCount(
-      { mountId, type: "compare", repo, owner, commitRefs },
+      { mountId, type: "compare", repo, owner, ...compare },
       CompareDiff,
     );
 }

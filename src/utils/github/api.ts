@@ -5,6 +5,7 @@ import type {
   DiffEntry,
   EncodedFile,
   PullRequest,
+  Repository,
   User,
 } from "./types";
 
@@ -69,6 +70,16 @@ export function createGithubApi() {
     },
 
     /**
+     * Load information about a repository, mainly its default branch.
+     */
+    async getRepo(options: {
+      owner: string;
+      repo: string;
+    }): Promise<Repository> {
+      return await fetch<Repository>(`/repos/${options.owner}/${options.repo}`);
+    },
+
+    /**
      * Load information about a PR.
      */
     async getPr(options: {
@@ -126,10 +137,11 @@ export function createGithubApi() {
     async compareCommits(options: {
       owner: string;
       repo: string;
-      commitRefs: [string, string];
+      base: string;
+      head: string;
     }): Promise<Comparison> {
       return await fetch<Comparison>(
-        `/repos/${options.owner}/${options.repo}/compare/${options.commitRefs[0]}...${options.commitRefs[1]}`,
+        `/repos/${options.owner}/${options.repo}/compare/${options.base}...${options.head}`,
       );
     },
   };
