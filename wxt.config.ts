@@ -53,6 +53,17 @@ export default defineConfig({
       name: "__MSG_name__",
       description: "__MSG_description__",
       permissions,
+      // Toolbar button that opens the options page. Without one, Firefox lists the extension
+      // greyed out in its extensions panel.
+      action: {
+        default_title: "__MSG_name__",
+        default_icon: {
+          16: "icons/16.png",
+          32: "icons/32.png",
+          48: "icons/48.png",
+          128: "icons/128.png",
+        },
+      },
     };
   },
   autoIcons: {

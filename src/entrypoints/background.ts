@@ -16,4 +16,10 @@ export default defineBackground(() => {
       );
     }
   });
+
+  // The toolbar button just opens the options page. MV2 (Firefox) exposes it as browserAction.
+  const action = browser.action ?? browser.browserAction;
+  action?.onClicked.addListener(() => {
+    void browser.runtime.openOptionsPage();
+  });
 });

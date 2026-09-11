@@ -7,6 +7,8 @@
     <script src="./main.ts" type="module"></script>
     <link rel="stylesheet" href="~/assets/tailwind.css" />
     <meta name="manifest.open_in_tab" content="false" />
+    <!-- Firefox would otherwise inject its own stylesheet, which overrides Tailwind's layered utilities. -->
+    <meta name="manifest.browser_style" content="false" />
   </head>
   <body class="p-4 gap-4 flex flex-col"></body>
 </html>
