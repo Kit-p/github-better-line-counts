@@ -105,17 +105,19 @@ export function createBreakdownCard(rows: BreakdownRow[]): HTMLElement {
       createElement(
         "td",
         `${BLOCK}__files`,
-        i18n.t("breakdown.files", row.summary.files),
+        i18n.t("breakdown.files", row.summary.files, [
+          formatCount(row.summary.files),
+        ]),
       ),
       createElement(
         "td",
         `${BLOCK}__additions`,
-        i18n.t("diffs.additionsSymbol", [row.summary.additions]),
+        i18n.t("diffs.additionsSymbol", [formatCount(row.summary.additions)]),
       ),
       createElement(
         "td",
         `${BLOCK}__deletions`,
-        i18n.t("diffs.deletionsSymbol", [row.summary.deletions]),
+        i18n.t("diffs.deletionsSymbol", [formatCount(row.summary.deletions)]),
       ),
     );
     body.append(line);

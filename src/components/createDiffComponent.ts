@@ -12,6 +12,35 @@ export function usesSymbolFormat(
   return /^\s*[+\-−]/.test(element?.textContent ?? "");
 }
 
+type CountText = (
+  count: number,
+  element: HTMLElement | null | undefined,
+) => string;
+
+/**
+ * Replacement text for the counts, in the format the element already uses. In text form the
+ * generated count is inserted into a sentence ("... and 90 deletions (400 generated)."), so it is
+ * parenthesized.
+ */
+export const diffText = {
+  additions: ((count, element) =>
+    usesSymbolFormat(element)
+      ? i18n.t("diffs.additionsSymbol", [formatCount(count)])
+      : i18n.t("diffs.additionsText", count, [
+          formatCount(count),
+        ])) as CountText,
+  deletions: ((count, element) =>
+    usesSymbolFormat(element)
+      ? i18n.t("diffs.deletionsSymbol", [formatCount(count)])
+      : i18n.t("diffs.deletionsText", count, [
+          formatCount(count),
+        ])) as CountText,
+  generated: ((count, element) =>
+    usesSymbolFormat(element)
+      ? i18n.t("diffs.generatedSymbol", [formatCount(count)])
+      : i18n.t("diffs.generatedTextInline", [formatCount(count)])) as CountText,
+};
+
 export function createDiffComponent(options: {
   getAdditionsElement: () => HTMLElement | null | undefined;
   getDeletionsElement: () => HTMLElement | null | undefined;
@@ -20,18 +49,9 @@ export function createDiffComponent(options: {
    * Text getters receive the element being replaced (the additions element for the generated
    * count) so they can match the page's existing format.
    */
-  getAdditionsText: (
-    count: number,
-    element: HTMLElement | null | undefined,
-  ) => string;
-  getDeletionsText: (
-    count: number,
-    element: HTMLElement | null | undefined,
-  ) => string;
-  getGeneratedText: (
-    count: number,
-    element: HTMLElement | null | undefined,
-  ) => string;
+  getAdditionsText: CountText;
+  getDeletionsText: CountText;
+  getGeneratedText: CountText;
 }): (statsPromise: Promise<RecalculateResult>) => Promise<void> {
   return async (statsPromise) => {
     const hideGeneratedLineCountPromise =
@@ -89,10 +109,10 @@ export function createDiffComponent(options: {
           ),
         );
         const generatedAdditionsText = i18n.t("diffs.additionsSymbol", [
-          stats.exclude.additions,
+          formatCount(stats.exclude.additions),
         ]);
         const generatedDeletionsText = i18n.t("diffs.deletionsSymbol", [
-          stats.exclude.deletions,
+          formatCount(stats.exclude.deletions),
         ]);
         generated.title = `${generatedAdditionsText} ${generatedDeletionsText}`;
         spinner.replaceWith(generated);

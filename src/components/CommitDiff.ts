@@ -1,4 +1,4 @@
-import { createDiffComponent, usesSymbolFormat } from "./createDiffComponent";
+import { createDiffComponent, diffText } from "./createDiffComponent";
 
 export const CommitDiff = createDiffComponent({
   getAdditionsElement: () =>
@@ -22,17 +22,7 @@ export const CommitDiff = createDiffComponent({
     // GitHub omits the deletions count when it is zero.
     (this.getDeletionsElement() ?? this.getAdditionsElement())?.after(spinner);
   },
-  getAdditionsText: (count, element) =>
-    usesSymbolFormat(element)
-      ? i18n.t("diffs.additionsSymbol", [count])
-      : i18n.t("diffs.additionsText", count),
-  getDeletionsText: (count, element) =>
-    usesSymbolFormat(element)
-      ? i18n.t("diffs.deletionsSymbol", [count])
-      : i18n.t("diffs.deletionsText", count),
-  // In text form the count is inserted into a sentence: "... and 3 deletions (12 generated)."
-  getGeneratedText: (count, element) =>
-    usesSymbolFormat(element)
-      ? i18n.t("diffs.generatedSymbol", [count])
-      : i18n.t("diffs.generatedTextInline", [count]),
+  getAdditionsText: diffText.additions,
+  getDeletionsText: diffText.deletions,
+  getGeneratedText: diffText.generated,
 });

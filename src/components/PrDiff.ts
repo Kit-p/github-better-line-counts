@@ -1,3 +1,5 @@
+import { createDiffComponent, diffText } from "./createDiffComponent";
+
 export const PrDiff = createDiffComponent({
   getAdditionsElement: () =>
     querySelectorFirst(
@@ -17,7 +19,7 @@ export const PrDiff = createDiffComponent({
     // GitHub omits the deletions count when it is zero.
     (this.getDeletionsElement() ?? this.getAdditionsElement())?.after(spinner);
   },
-  getAdditionsText: (count) => i18n.t("diffs.additionsSymbol", [count]),
-  getDeletionsText: (count) => i18n.t("diffs.deletionsSymbol", [count]),
-  getGeneratedText: (count) => i18n.t("diffs.generatedSymbol", [count]),
+  getAdditionsText: diffText.additions,
+  getDeletionsText: diffText.deletions,
+  getGeneratedText: diffText.generated,
 });

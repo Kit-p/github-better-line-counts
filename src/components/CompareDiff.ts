@@ -1,4 +1,4 @@
-import { createDiffComponent, usesSymbolFormat } from "./createDiffComponent";
+import { createDiffComponent, diffText } from "./createDiffComponent";
 
 export const CompareDiff = createDiffComponent({
   getAdditionsElement: () =>
@@ -13,19 +13,10 @@ export const CompareDiff = createDiffComponent({
     ),
   addSpinnerToPage(spinner) {
     // Right after the deletions count, so the generated count lands inside the sentence:
-    // "Showing 35 changed files with 1992 additions and 90 deletions (400 generated)."
+    // "Showing 35 changed files with 1,992 additions and 90 deletions (400 generated)."
     (this.getDeletionsElement() ?? this.getAdditionsElement())?.after(spinner);
   },
-  getAdditionsText: (count, element) =>
-    usesSymbolFormat(element)
-      ? i18n.t("diffs.additionsSymbol", [count])
-      : i18n.t("diffs.additionsText", count),
-  getDeletionsText: (count, element) =>
-    usesSymbolFormat(element)
-      ? i18n.t("diffs.deletionsSymbol", [count])
-      : i18n.t("diffs.deletionsText", count),
-  getGeneratedText: (count, element) =>
-    usesSymbolFormat(element)
-      ? i18n.t("diffs.generatedSymbol", [count])
-      : i18n.t("diffs.generatedTextInline", [count]),
+  getAdditionsText: diffText.additions,
+  getDeletionsText: diffText.deletions,
+  getGeneratedText: diffText.generated,
 });

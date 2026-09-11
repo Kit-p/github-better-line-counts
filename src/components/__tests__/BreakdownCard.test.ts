@@ -15,8 +15,10 @@ import { BREAKDOWN_CARD_ID } from "@/utils/constants";
 
 vi.mock("#i18n", () => ({
   i18n: {
-    t: (key: string, arg?: number | unknown[]) => {
-      const sub = Array.isArray(arg) ? arg[0] : arg;
+    t: (key: string, ...args: unknown[]) => {
+      const subs = args.find((arg): arg is unknown[] => Array.isArray(arg));
+      const count = args.find((arg): arg is number => typeof arg === "number");
+      const sub = subs ? subs[0] : count;
       return sub === undefined ? key : `${key}:${sub}`;
     },
   },
@@ -188,6 +190,24 @@ describe("createBreakdownCard", () => {
     // Every row has the same number of cells so the columns line up.
     expect(new Set(rows.map((row) => row.children.length))).toEqual(
       new Set([6]),
+    );
+  });
+
+  it("should format counts with thousands separators", () => {
+    const card = createBreakdownCard([
+      {
+        name: "Big",
+        icon: "",
+        color: "#000000",
+        summary: summary(1234, 56789, 1000),
+      },
+    ]);
+
+    expect(
+      card.querySelector(".github-better-line-counts-breakdown__row")
+        ?.textContent,
+    ).toBe(
+      "Bigbreakdown.files:1,000diffs.additionsSymbol:1,234diffs.deletionsSymbol:56,789",
     );
   });
 
