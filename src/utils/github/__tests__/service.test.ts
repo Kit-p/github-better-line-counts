@@ -6,7 +6,9 @@ import type { DiffEntry } from "../types";
 import {
   breakdownCategoriesStorage,
   customListsStorage,
+  linguistMappingsStorage,
 } from "@/utils/storage";
+import { DEFAULT_LINGUIST_MAPPINGS } from "@/utils/linguist";
 
 function file(filename: string, additions: number, deletions: number) {
   return {
@@ -46,6 +48,7 @@ const prOptions = (mountId: number): RecalculateOptions => ({
 describe("GithubService", () => {
   beforeEach(async () => {
     fakeBrowser.reset();
+    await linguistMappingsStorage.setValue(DEFAULT_LINGUIST_MAPPINGS);
     await customListsStorage.setValue({ all: "*.lock" });
     await breakdownCategoriesStorage.setValue([
       {
@@ -133,6 +136,45 @@ describe("GithubService", () => {
       changes: 2,
       files: 1,
     });
+  });
+
+  it("should route files by their Linguist attributes", async () => {
+    const service = createGithubService(
+      createFakeApi(
+        [
+          file("notes.txt", 5, 0),
+          file("lib/embedded.js", 100, 0),
+          file("src/index.ts", 1, 0),
+        ],
+        "*.txt linguist-documentation\nlib/** linguist-vendored",
+      ),
+    );
+
+    const result = await service.recalculateDiff(prOptions(1));
+
+    expect(result.breakdown.docs).toMatchObject({ additions: 5, files: 1 });
+    expect(result.exclude).toMatchObject({ additions: 100, files: 1 });
+    expect(result.other).toMatchObject({ additions: 1, files: 1 });
+  });
+
+  it("should follow a custom Linguist mapping", async () => {
+    await linguistMappingsStorage.setValue({
+      ...DEFAULT_LINGUIST_MAPPINGS,
+      "linguist-documentation": "tests",
+      "linguist-vendored": "none",
+    });
+    const service = createGithubService(
+      createFakeApi(
+        [file("notes.txt", 5, 0), file("lib/embedded.js", 100, 0)],
+        "*.txt linguist-documentation\nlib/** linguist-vendored",
+      ),
+    );
+
+    const result = await service.recalculateDiff(prOptions(1));
+
+    expect(result.breakdown.tests).toMatchObject({ additions: 5, files: 1 });
+    expect(result.exclude).toMatchObject({ files: 0 });
+    expect(result.other).toMatchObject({ additions: 100, files: 1 });
   });
 
   it("should reuse the cached result for the same commit", async () => {

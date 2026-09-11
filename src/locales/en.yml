@@ -54,6 +54,13 @@ options:
       Enter glob patterns:
       *.lock
       **/vendor/**
+  linguist:
+    title: Linguist Attributes
+    description1: Repositories can mark files in .gitattributes with
+    description2: Linguist attributes
+    description3: . Choose what happens to files carrying each attribute. These declarations take precedence over the pattern lists.
+    targetGenerated: Generated (subtract from the counts)
+    targetNone: No special handling
   breakdown:
     title: Breakdown
     description: Group the remaining, non-generated lines into categories such as tests, docs, or configs. Categories never change the line counts. Hover over the counts to see how the lines are split up.

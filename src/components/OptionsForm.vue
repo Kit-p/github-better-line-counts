@@ -3,6 +3,7 @@ import TokenPref from "./TokenPref.vue";
 import ShowGeneratedCountPref from "./ShowGeneratedCountPref.vue";
 import CustomListsPref from "./CustomListsPref.vue";
 import BreakdownPref from "./BreakdownPref.vue";
+import LinguistPref from "./LinguistPref.vue";
 import {
   hideGeneratedLineCountStorage,
   type CustomLists,
@@ -10,8 +11,10 @@ import {
   customListsStorage,
   showBreakdownStorage,
   breakdownCategoriesStorage,
+  linguistMappingsStorage,
 } from "@/utils/storage";
 import type { BreakdownCategory } from "@/utils/breakdown";
+import type { LinguistMappings } from "@/utils/linguist";
 
 const { state, hasChanges, reset, saveChanges } = useForm<{
   hideGeneratedLineCount: boolean;
@@ -19,6 +22,7 @@ const { state, hasChanges, reset, saveChanges } = useForm<{
   customLists: CustomLists;
   showBreakdown: boolean;
   breakdownCategories: BreakdownCategory[];
+  linguistMappings: LinguistMappings;
 }>(
   {
     hideGeneratedLineCount: await hideGeneratedLineCountStorage.getValue(),
@@ -27,6 +31,7 @@ const { state, hasChanges, reset, saveChanges } = useForm<{
     customLists: await customListsStorage.getValue(),
     showBreakdown: await showBreakdownStorage.getValue(),
     breakdownCategories: await breakdownCategoriesStorage.getValue(),
+    linguistMappings: await linguistMappingsStorage.getValue(),
   },
   async (newState) => {
     await hideGeneratedLineCountStorage.setValue(
@@ -36,6 +41,7 @@ const { state, hasChanges, reset, saveChanges } = useForm<{
     await customListsStorage.setValue(newState.customLists);
     await showBreakdownStorage.setValue(newState.showBreakdown);
     await breakdownCategoriesStorage.setValue(newState.breakdownCategories);
+    await linguistMappingsStorage.setValue(newState.linguistMappings);
 
     // Clear cache
     await commitHashDiffsCache.clear();
@@ -55,6 +61,10 @@ const { t } = i18n;
     <BreakdownPref
       v-model:show-breakdown="state.showBreakdown"
       v-model:categories="state.breakdownCategories"
+    />
+    <LinguistPref
+      v-model:mappings="state.linguistMappings"
+      :categories="state.breakdownCategories"
     />
 
     <div

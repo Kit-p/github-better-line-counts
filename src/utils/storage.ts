@@ -2,6 +2,7 @@ import {
   DEFAULT_BREAKDOWN_CATEGORIES,
   type BreakdownCategory,
 } from "./breakdown";
+import { DEFAULT_LINGUIST_MAPPINGS, type LinguistMappings } from "./linguist";
 
 export interface CustomLists {
   all: string;
@@ -30,6 +31,10 @@ export interface ExtensionStorageSchema {
    * first match wins.
    */
   breakdownCategories: BreakdownCategory[];
+  /**
+   * Where files carrying each Linguist attribute from `.gitattributes` go.
+   */
+  linguistMappings: LinguistMappings;
 }
 
 export const githubPatStorage = storage.defineItem<string>("local:githubPat", {
@@ -60,3 +65,8 @@ export const breakdownCategoriesStorage = storage.defineItem<
 >("local:breakdownCategories", {
   defaultValue: DEFAULT_BREAKDOWN_CATEGORIES,
 });
+
+export const linguistMappingsStorage = storage.defineItem<LinguistMappings>(
+  "local:linguistMappings",
+  { defaultValue: DEFAULT_LINGUIST_MAPPINGS },
+);

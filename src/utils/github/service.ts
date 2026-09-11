@@ -1,5 +1,5 @@
 import { GitAttributes } from "../gitattributes";
-import type { ParsedPattern } from "../patterns";
+import { classifyFile, type Classifier } from "../classify";
 import type { GithubApi } from "./api";
 import type { DiffEntry, User } from "./types";
 
@@ -32,22 +32,23 @@ export function createGithubService(api: GithubApi): GithubService {
   }
 
   /**
-   * Patterns from the options page that mark files as generated.
+   * The user's generated list, breakdown categories, and Linguist mappings, ready to classify
+   * files with.
    */
-  async function getGeneratedPatterns(): Promise<ParsedPattern[]> {
-    const { all } = await customListsStorage.getValue();
-    return parsePatterns(all);
-  }
-
-  /**
-   * Breakdown categories from the options page, in match order, with their patterns parsed.
-   */
-  async function getBreakdownCategories(): Promise<ParsedCategory[]> {
-    const categories = await breakdownCategoriesStorage.getValue();
-    return categories.map((category) => ({
-      id: category.id,
-      patterns: parsePatterns(category.patterns),
-    }));
+  async function getClassifier(): Promise<Classifier> {
+    const [customLists, categories, linguist] = await Promise.all([
+      customListsStorage.getValue(),
+      breakdownCategoriesStorage.getValue(),
+      linguistMappingsStorage.getValue(),
+    ]);
+    return {
+      generated: parsePatterns(customLists.all),
+      categories: categories.map((category) => ({
+        id: category.id,
+        patterns: parsePatterns(category.patterns),
+      })),
+      linguist,
+    };
   }
 
   /**
@@ -145,13 +146,11 @@ export function createGithubService(api: GithubApi): GithubService {
       // 10s sleep for testing loading UI
       // await sleep(10e3);
 
-      const [gitAttributes, changedFiles, generatedPatterns, categories] =
-        await Promise.all([
-          getGitAttributes({ ...options, ref }),
-          getChangedFiles(options),
-          getGeneratedPatterns(),
-          getBreakdownCategories(),
-        ]);
+      const [gitAttributes, changedFiles, classifier] = await Promise.all([
+        getGitAttributes({ ...options, ref }),
+        getChangedFiles(options),
+        getClassifier(),
+      ]);
       logger.debug(`Found ${changedFiles.length} files`);
 
       const include: DiffEntry[] = [];
@@ -159,39 +158,30 @@ export function createGithubService(api: GithubApi): GithubService {
       const categorized: Array<{ file: DiffEntry; categoryId?: string }> = [];
 
       changedFiles.forEach((diff) => {
-        const gitAttributesEval = gitAttributes?.evaluate(diff.filename);
-        const isGitAttributesGenerated =
-          !!gitAttributesEval?.attributes["linguist-generated"];
-        const isSettingsGenerated = matchesPatterns(
+        const attributes = gitAttributes?.evaluate(diff.filename).attributes;
+        const classification = classifyFile(
           diff.filename,
-          generatedPatterns,
+          classifier,
+          attributes,
         );
-        const isGenerated = isGitAttributesGenerated || isSettingsGenerated;
+        logger.debug("Classified", diff.filename, classification);
 
-        logger.debug("Is generated?", diff.filename, {
-          isGitAttributesGenerated,
-          isSettingsGenerated,
-          isGenerated,
-        });
-        logger.debug("Git attributes evaluation:", gitAttributesEval);
-
-        if (isGenerated) {
+        if (classification.kind === "generated") {
           exclude.push(diff);
           return;
         }
-
         include.push(diff);
-        // Generated files are never categorized. Everything else goes to the first matching
-        // category, or to "other" if none match.
-        const category = categories.find(({ patterns }) =>
-          matchesPatterns(diff.filename, patterns),
-        );
-        logger.debug("Breakdown category:", diff.filename, category?.id);
-        categorized.push({ file: diff, categoryId: category?.id });
+        categorized.push({
+          file: diff,
+          categoryId:
+            classification.kind === "category"
+              ? classification.categoryId
+              : undefined,
+        });
       });
 
       const breakdown: Record<string, DiffSummary> = {};
-      for (const { id } of categories) {
+      for (const { id } of classifier.categories) {
         breakdown[id] = calculateDiffForFiles(
           categorized
             .filter((entry) => entry.categoryId === id)
@@ -221,11 +211,6 @@ export function createGithubService(api: GithubApi): GithubService {
 }
 
 // Types
-
-interface ParsedCategory {
-  id: string;
-  patterns: ParsedPattern[];
-}
 
 export type RecalculateOptions =
   | RecalculatePrOptions
