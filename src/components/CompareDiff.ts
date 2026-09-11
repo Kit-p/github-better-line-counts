@@ -12,8 +12,9 @@ export const CompareDiff = createDiffComponent({
       [".toc-diff-stats>strong", 1],
     ),
   addSpinnerToPage(spinner) {
-    const container = this.getDeletionsElement()?.parentElement;
-    container?.appendChild(spinner);
+    // Right after the deletions count, so the generated count lands inside the sentence:
+    // "Showing 35 changed files with 1992 additions and 90 deletions (400 generated)."
+    (this.getDeletionsElement() ?? this.getAdditionsElement())?.after(spinner);
   },
   getAdditionsText: (count, element) =>
     usesSymbolFormat(element)
@@ -26,5 +27,5 @@ export const CompareDiff = createDiffComponent({
   getGeneratedText: (count, element) =>
     usesSymbolFormat(element)
       ? i18n.t("diffs.generatedSymbol", [count])
-      : i18n.t("diffs.generatedText", [count]),
+      : i18n.t("diffs.generatedTextInline", [count]),
 });

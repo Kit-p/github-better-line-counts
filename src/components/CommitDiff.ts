@@ -19,7 +19,8 @@ export const CommitDiff = createDiffComponent({
       "[data-component='PageHeader.Description'] .f6.text-bold.fgColor-danger",
     ),
   addSpinnerToPage(spinner) {
-    this.getDeletionsElement()?.after(spinner);
+    // GitHub omits the deletions count when it is zero.
+    (this.getDeletionsElement() ?? this.getAdditionsElement())?.after(spinner);
   },
   getAdditionsText: (count, element) =>
     usesSymbolFormat(element)
@@ -29,8 +30,9 @@ export const CommitDiff = createDiffComponent({
     usesSymbolFormat(element)
       ? i18n.t("diffs.deletionsSymbol", [count])
       : i18n.t("diffs.deletionsText", count),
+  // In text form the count is inserted into a sentence: "... and 3 deletions (12 generated)."
   getGeneratedText: (count, element) =>
     usesSymbolFormat(element)
       ? i18n.t("diffs.generatedSymbol", [count])
-      : i18n.t("diffs.generatedText", [count]),
+      : i18n.t("diffs.generatedTextInline", [count]),
 });
