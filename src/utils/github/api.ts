@@ -19,10 +19,12 @@ export function createGithubApi() {
       Accept: "application/vnd.github+json",
     },
     async onRequest(ctx) {
-      if (!ctx.options.headers.has("Authorization")) {
-        const token = await githubPatStorage.getValue();
-        ctx.options.headers.set("Authorization", `Bearer ${token}`);
-      }
+      if (ctx.options.headers.has("Authorization")) return;
+
+      // Only authenticate when a token is set. GitHub rejects an empty bearer token with a 401
+      // instead of treating the request as anonymous.
+      const token = await githubPatStorage.getValue();
+      if (token) ctx.options.headers.set("Authorization", `Bearer ${token}`);
     },
   });
 
