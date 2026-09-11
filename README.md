@@ -48,6 +48,14 @@ You can provide a default API token for development by creating a `.env.developm
 VITE_DEFAULT_TOKEN=<your-token>
 ```
 
+### Firefox Add-on ID
+
+Firefox only installs an add-on permanently when its manifest declares an id, so self-distributed test builds need one. Set it when zipping for Firefox and leave it unset for store builds:
+
+```sh
+WXT_FIREFOX_ADDON_ID=<your-id> bun run zip:firefox
+```
+
 ### Scripts
 
 This extension is bundled via [WXT](https://wxt.dev).

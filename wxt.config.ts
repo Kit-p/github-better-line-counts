@@ -48,7 +48,16 @@ export default defineConfig({
     if (browser === "firefox") {
       permissions.push("https://api.github.com/*");
     }
+    // Firefox only installs an add-on permanently when it declares an id (and is signed). Set
+    // WXT_FIREFOX_ADDON_ID for self-distributed test builds. Store builds leave it unset so the
+    // add-on store keeps using the id it assigned to the listing.
+    const firefoxAddonId = process.env.WXT_FIREFOX_ADDON_ID;
+    const firefoxSettings =
+      browser === "firefox" && firefoxAddonId
+        ? { browser_specific_settings: { gecko: { id: firefoxAddonId } } }
+        : {};
     return {
+      ...firefoxSettings,
       default_locale: "en",
       name: "__MSG_name__",
       description: "__MSG_description__",
