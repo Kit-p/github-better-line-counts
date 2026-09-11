@@ -305,6 +305,28 @@ describe("mountBreakdownCard", () => {
     expect(card.hidden).toBe(true);
   });
 
+  it("should also show the card when hovering the text between the counts", () => {
+    const sentence = document.createElement("p");
+    const additions = document.createElement("strong");
+    const deletions = document.createElement("strong");
+    sentence.append("with ", additions, " and ", deletions, ".");
+    document.body.append(sentence);
+    mountBreakdownCard(
+      [additions, deletions],
+      getBreakdownRows(stats, categories),
+    );
+    const card = document.getElementById(BREAKDOWN_CARD_ID);
+    if (!card) throw Error("Card was not mounted");
+
+    sentence.dispatchEvent(new MouseEvent("mouseenter"));
+    vi.advanceTimersByTime(150);
+    expect(card.hidden).toBe(false);
+
+    sentence.dispatchEvent(new MouseEvent("mouseleave"));
+    vi.advanceTimersByTime(100);
+    expect(card.hidden).toBe(true);
+  });
+
   it("should not show the card when the pointer leaves before the delay", () => {
     const { anchors, card } = mount();
     const anchor = anchors[0]!;

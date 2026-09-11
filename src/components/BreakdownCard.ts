@@ -147,8 +147,34 @@ function getUnionRect(anchors: HTMLElement[]) {
 }
 
 /**
- * Add the card to the page and show it while the pointer is over any of the anchors or the card
- * itself. Replaces any card left over from a previous mount.
+ * The elements whose hover shows the card: the closest ancestor containing every anchor, so the
+ * text between the counts (" and ") works too. Falls back to the anchors themselves when that
+ * ancestor would be the whole page.
+ */
+function getHoverTargets(anchors: HTMLElement[]): HTMLElement[] {
+  const [first, ...rest] = anchors;
+  if (!first) return [];
+
+  let ancestor: HTMLElement | null = first;
+  while (ancestor !== null) {
+    const current: HTMLElement = ancestor;
+    if (rest.every((anchor) => current.contains(anchor))) break;
+    ancestor = current.parentElement;
+  }
+
+  if (
+    !ancestor ||
+    ancestor === document.body ||
+    ancestor === document.documentElement
+  ) {
+    return anchors;
+  }
+  return [ancestor];
+}
+
+/**
+ * Add the card to the page and show it while the pointer is over the counts (or the text between
+ * them) or the card itself. Replaces any card left over from a previous mount.
  */
 export function mountBreakdownCard(
   anchors: HTMLElement[],
@@ -202,9 +228,9 @@ export function mountBreakdownCard(
     }, HIDE_DELAY_MS);
   };
 
-  for (const anchor of anchors) {
-    anchor.addEventListener("mouseenter", show);
-    anchor.addEventListener("mouseleave", hide);
+  for (const target of getHoverTargets(anchors)) {
+    target.addEventListener("mouseenter", show);
+    target.addEventListener("mouseleave", hide);
   }
   card.addEventListener("mouseenter", () => window.clearTimeout(hideTimeout));
   card.addEventListener("mouseleave", hide);
