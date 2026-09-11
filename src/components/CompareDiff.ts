@@ -1,7 +1,9 @@
+import { createDiffComponent, usesSymbolFormat } from "./createDiffComponent";
+
 export const CompareDiff = createDiffComponent({
   getAdditionsElement: () =>
     querySelectorFirst(
-      // 2023
+      // 2023, still used by compare pages in 2026-09
       [".toc-diff-stats>strong", 0],
     ),
   getDeletionsElement: () =>
@@ -13,7 +15,16 @@ export const CompareDiff = createDiffComponent({
     const container = this.getDeletionsElement()?.parentElement;
     container?.appendChild(spinner);
   },
-  getAdditionsText: (count) => i18n.t("diffs.additionsText", count),
-  getDeletionsText: (count) => i18n.t("diffs.deletionsText", count),
-  getGeneratedText: (count) => i18n.t("diffs.generatedText", [count]),
+  getAdditionsText: (count, element) =>
+    usesSymbolFormat(element)
+      ? i18n.t("diffs.additionsSymbol", [count])
+      : i18n.t("diffs.additionsText", count),
+  getDeletionsText: (count, element) =>
+    usesSymbolFormat(element)
+      ? i18n.t("diffs.deletionsSymbol", [count])
+      : i18n.t("diffs.deletionsText", count),
+  getGeneratedText: (count, element) =>
+    usesSymbolFormat(element)
+      ? i18n.t("diffs.generatedSymbol", [count])
+      : i18n.t("diffs.generatedText", [count]),
 });

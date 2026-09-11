@@ -1,13 +1,37 @@
 import type { RecalculateResult } from "@/utils/github";
 import { getBreakdownRows, mountBreakdownCard } from "./BreakdownCard";
 
+/**
+ * GitHub's older pages spell counts out ("12 additions") while its newer React pages use symbols
+ * ("+12"). Returns true when the element currently shows the symbol form, so replacements can keep
+ * whichever style the page uses.
+ */
+export function usesSymbolFormat(
+  element: HTMLElement | null | undefined,
+): boolean {
+  return /^\s*[+\-−]/.test(element?.textContent ?? "");
+}
+
 export function createDiffComponent(options: {
   getAdditionsElement: () => HTMLElement | null | undefined;
   getDeletionsElement: () => HTMLElement | null | undefined;
   addSpinnerToPage: (spinner: HTMLElement) => void;
-  getAdditionsText: (count: number) => string;
-  getDeletionsText: (count: number) => string;
-  getGeneratedText: (count: number) => string;
+  /**
+   * Text getters receive the element being replaced (the additions element for the generated
+   * count) so they can match the page's existing format.
+   */
+  getAdditionsText: (
+    count: number,
+    element: HTMLElement | null | undefined,
+  ) => string;
+  getDeletionsText: (
+    count: number,
+    element: HTMLElement | null | undefined,
+  ) => string;
+  getGeneratedText: (
+    count: number,
+    element: HTMLElement | null | undefined,
+  ) => string;
 }): (statsPromise: Promise<RecalculateResult>) => Promise<void> {
   return async (statsPromise) => {
     const hideGeneratedLineCountPromise =
@@ -36,23 +60,28 @@ export function createDiffComponent(options: {
       // Render new counts
 
       const additions = options.getAdditionsElement();
+      const deletions = options.getDeletionsElement();
+      const generatedText = options.getGeneratedText(
+        stats.exclude.changes,
+        additions,
+      );
+
       if (additions)
         additions.textContent = options.getAdditionsText(
           stats.include.additions,
+          additions,
         );
-
-      const deletions = options.getDeletionsElement();
       if (deletions)
         deletions.textContent = options.getDeletionsText(
           stats.include.deletions,
+          deletions,
         );
 
       let generated: HTMLElement | undefined;
       if (!hideGeneratedLineCount) {
         generated = document.createElement("strong");
         generated.id = DIFF_COMPONENT_ID;
-        generated.textContent =
-          " " + options.getGeneratedText(stats.exclude.changes);
+        generated.textContent = " " + generatedText;
         generated.style.color = GREY_COLOR;
         generated.classList.add(
           ...[...(additions?.classList ?? [])].filter(
