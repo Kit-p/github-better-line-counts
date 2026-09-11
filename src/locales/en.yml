@@ -73,6 +73,7 @@ options:
     namePlaceholder: Category name
     iconLabel: Icon
     colorLabel: Color
+    customColor: Custom color…
     patternsLabel: Patterns
     patternsPlaceholder: |
       Enter glob patterns:

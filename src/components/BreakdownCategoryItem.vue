@@ -116,6 +116,33 @@ const { t } = i18n;
               :style="{ backgroundColor: color }"
             />
           </button>
+          <!-- Escape hatch: any color via the native picker -->
+          <label
+            class="btn btn-ghost btn-sm btn-square relative cursor-pointer"
+            :class="{ 'btn-active': !CATEGORY_COLORS.includes(category.color) }"
+            :title="t('options.breakdown.customColor')"
+          >
+            <span
+              class="inline-block size-4 rounded-full"
+              style="
+                background: conic-gradient(
+                  #cf222e,
+                  #bf8700,
+                  #1a7f37,
+                  #0969da,
+                  #8250df,
+                  #cf222e
+                );
+              "
+            />
+            <input
+              class="absolute inset-0 cursor-pointer opacity-0"
+              type="color"
+              :value="category.color"
+              :aria-label="t('options.breakdown.customColor')"
+              @input="update('color', inputValue($event))"
+            />
+          </label>
         </div>
       </div>
 
