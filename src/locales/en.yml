@@ -2,6 +2,7 @@ name: GitHub Better Line Counts
 description: Remove generated files from GitHub line counts
 saveChanges: Save Changes
 discard: Discard
+cancel: Cancel
 diffs:
   additionsText:
     1: $1 addition
@@ -13,8 +14,15 @@ diffs:
   additionsSymbol: +$1
   deletionsSymbol: −$1
   generatedSymbol: ⌁$1
+breakdown:
+  other: Other
+  generated: Generated
+  files:
+    1: $1 file
+    n: $1 files
 options:
   title: Options
+  patternHint: Patterns match at any depth unless they start with "/". A trailing "/" matches everything inside a directory. Blank lines and lines starting with "#" are ignored.
   privateRepos:
     title: Access Private Repos
     description1: "Optional:"
@@ -36,12 +44,33 @@ options:
     description6: ⌁generated
     description7: lines.
   customLists:
-    title: Custom Lists
+    title: Generated Files
     description1: Use
     description2: minimatch
-    description3: glob patterns to mark files as generated across all repos.
+    description3: glob patterns to mark files as generated across all repos. Generated files are subtracted from the line counts, in addition to files marked as linguist-generated in the repo's .gitattributes.
     allRepos: All Repos
     customRepoPlaceholder: |
       Enter glob patterns:
       *.lock
       **/vendor/**
+  breakdown:
+    title: Breakdown
+    description: Group the remaining, non-generated lines into categories such as tests, docs, or configs. Categories never change the line counts. Hover over the counts to see how the lines are split up.
+    enable: Show the breakdown when hovering over the line counts
+    orderHint: Files are matched against the categories from top to bottom and the first match wins. Files that match no category are counted as "Other".
+    addCategory: Add Category
+    restoreDefaults: Restore Defaults
+    restoreDefaultsConfirm: Replace all categories with the defaults? Any categories you've added or edited will be lost.
+    nameLabel: Name
+    namePlaceholder: Category name
+    iconLabel: Icon
+    colorLabel: Color
+    patternsLabel: Patterns
+    patternsPlaceholder: |
+      Enter glob patterns:
+      *.test.*
+      __tests__/
+    moveUp: Move up
+    moveDown: Move down
+    remove: Remove category
+    drag: Drag to reorder

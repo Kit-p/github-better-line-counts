@@ -2,7 +2,7 @@
 
 [<img height="72" src="./.github/assets/promo-cws.svg" alt="Available in the Chrome Web Store">](https://chrome.google.com/webstore/detail/ocfdgncpifmegplaglcnglhioflaimkd) [<img height="72" src="./.github/assets/promo-fas.svg" alt="Available in the Firefox Addon Store">](https://addons.mozilla.org/en-US/firefox/addon/github-better-line-counts/)
 
-A chrome extension that removes generated files from GitHub's line counts.
+A chrome extension that removes generated files from GitHub's line counts, and shows a breakdown of the remaining lines by category (tests, docs, configs, ...) when hovering over the counts.
 
 ### How does this work?
 
@@ -14,12 +14,17 @@ vendor/**/*     linguist-generated
 *.gen.html      linguist-generated
 ```
 
+You can also list glob patterns in the extension's options to mark files as generated across all repos.
+
+The breakdown shown on hover is driven by a second, ordered list of categories in the options. Each category has a name, an icon, a color, and its own glob patterns. Files are matched top to bottom and the first match wins. The breakdown never changes the line counts; it only describes what the lines are made of. Files matching no category are listed as "Other", and generated files are listed last.
+
 ## Roadmap
 
 - [x] `v1.0.0` Subtract a hardcoded list of generated files from PR diffs as POC
 - [x] `v1.1.0` Support private repos via GitHub PAT
 - [x] `v1.2.0` Make the list based off your `.gitattributes`
 - [x] `v1.3.0` Show the number of generated lines next to additions and subtractions
+- [x] `v1.9.0` Show a breakdown of the non-generated lines by category when hovering over the counts
 - [ ] Recalculate the 5 diff boxes next to the count
 - [ ] Add a dropdown that lists the files that were counted in the generated line count
 

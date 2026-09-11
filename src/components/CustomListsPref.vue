@@ -37,6 +37,7 @@ const { t } = i18n;
         >
         {{ t("options.customLists.description3") }}
       </p>
+      <p class="text-sm opacity-70">{{ t("options.patternHint") }}</p>
     </div>
 
     <!-- All Repos -->

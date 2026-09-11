@@ -71,3 +71,32 @@ a*       foo !bar -baz # Comment 3`);
     expect(actual).toEqual(expected);
   });
 });
+
+describe("GitAttributes pattern matching", () => {
+  const gitattributes = new GitAttributes(`
+*.lock          linguist-generated
+vendor/**       linguist-generated
+/dist/**        linguist-generated
+`);
+
+  it.each([
+    ["bun.lock"],
+    ["packages/app/bun.lock"],
+    ["vendor/lib.js"],
+    ["src/vendor/lib.js"],
+    ["dist/index.js"],
+  ])("should mark %s as generated", (file) => {
+    expect(gitattributes.evaluate(file).attributes["linguist-generated"]).toBe(
+      true,
+    );
+  });
+
+  it.each([["src/index.ts"], ["packages/app/dist/index.js"]])(
+    "should not mark %s as generated",
+    (file) => {
+      expect(
+        gitattributes.evaluate(file).attributes["linguist-generated"],
+      ).toBeUndefined();
+    },
+  );
+});

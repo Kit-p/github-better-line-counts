@@ -1,0 +1,101 @@
+.github-better-line-counts-breakdown {
+  position: fixed;
+  z-index: 1000;
+  box-sizing: border-box;
+  min-width: 200px;
+  max-width: 400px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 20px;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--color-fg-default, var(--fgColor-default, #1f2328));
+  background: var(--color-canvas-overlay, var(--overlay-bgColor, #ffffff));
+  border: 1px solid
+    var(--color-border-default, var(--borderColor-default, #d0d7de));
+  border-radius: 6px;
+  box-shadow: var(
+    --color-shadow-large,
+    var(--shadow-floating-small, 0 8px 24px rgba(140, 149, 159, 0.2))
+  );
+}
+
+.github-better-line-counts-breakdown[hidden] {
+  display: none !important;
+}
+
+.github-better-line-counts-breakdown__bar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.github-better-line-counts-breakdown__segment {
+  display: block;
+  flex-basis: 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.github-better-line-counts-breakdown__rows {
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.github-better-line-counts-breakdown__rows td {
+  padding: 0 3px;
+  vertical-align: middle;
+}
+
+.github-better-line-counts-breakdown__rows td:first-child {
+  padding-left: 0;
+}
+
+.github-better-line-counts-breakdown__rows td:last-child {
+  padding-right: 0;
+}
+
+.github-better-line-counts-breakdown__swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  vertical-align: middle;
+  border-radius: 50%;
+}
+
+.github-better-line-counts-breakdown__icon {
+  text-align: center;
+}
+
+/* Size the card to its content; only very long names are truncated. */
+.github-better-line-counts-breakdown__name {
+  max-width: 200px;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+.github-better-line-counts-breakdown__files {
+  color: var(--color-fg-muted, var(--fgColor-muted, #656d76));
+  text-align: right;
+}
+
+.github-better-line-counts-breakdown__additions,
+.github-better-line-counts-breakdown__deletions {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.github-better-line-counts-breakdown__additions {
+  color: var(--color-success-fg, var(--fgColor-success, #1a7f37));
+}
+
+.github-better-line-counts-breakdown__deletions {
+  color: var(--color-danger-fg, var(--fgColor-danger, #cf222e));
+}

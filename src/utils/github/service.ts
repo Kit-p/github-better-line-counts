@@ -1,4 +1,3 @@
-import { minimatch } from "minimatch";
 import { GitAttributes } from "../gitattributes";
 import type { GithubApi } from "./api";
 import type { DiffEntry, User } from "./types";
@@ -12,9 +11,7 @@ export function createGithubService(api: GithubApi): GithubService {
   const mountCache: { [mountId: number]: RecalculateResult } = {};
 
   /**
-   * Returns a list of generated files that should be excluded from diff counts.
-   *
-   * Eventually, this will be based on your .gitattributes file.
+   * Returns the repo's `.gitattributes`, used to find files marked as `linguist-generated`.
    */
   async function getGitAttributes(options: {
     ref: string;
@@ -33,15 +30,22 @@ export function createGithubService(api: GithubApi): GithubService {
     return gitAttributes;
   }
 
-  async function getPatternsFromSettings(): Promise<
-    Array<{ source: string; pattern: string }>
-  > {
-    const res = await customListsStorage.getValue();
+  /**
+   * Patterns from the options page that mark files as generated.
+   */
+  async function getGeneratedPatterns(): Promise<string[]> {
+    const { all } = await customListsStorage.getValue();
+    return parsePatterns(all);
+  }
 
-    const { all } = res;
-    return all.split("\n").map((line) => ({
-      pattern: line,
-      source: "Options: All Repos",
+  /**
+   * Breakdown categories from the options page, in match order, with their patterns parsed.
+   */
+  async function getBreakdownCategories(): Promise<ParsedCategory[]> {
+    const categories = await breakdownCategoriesStorage.getValue();
+    return categories.map((category) => ({
+      id: category.id,
+      patterns: parsePatterns(category.patterns),
     }));
   }
 
@@ -88,7 +92,7 @@ export function createGithubService(api: GithubApi): GithubService {
       deletions += file.deletions;
     }
 
-    return { changes, additions, deletions };
+    return { changes, additions, deletions, files: files.length };
   }
 
   async function getChangedFiles(
@@ -122,9 +126,10 @@ export function createGithubService(api: GithubApi): GithubService {
   return {
     async recalculateDiff(options) {
       // Cache the result if the same content script tries to get the result multiple times.
-      if (mountCache[options.mountId]) {
+      const mounted = mountCache[options.mountId];
+      if (mounted) {
         logger.debug("[recalculateDiff] Using mount cache");
-        return mountCache[options.mountId];
+        return mounted;
       }
 
       const ref = await getCurrentCommit(options);
@@ -139,25 +144,27 @@ export function createGithubService(api: GithubApi): GithubService {
       // 10s sleep for testing loading UI
       // await sleep(10e3);
 
-      const [gitAttributes, changedFiles, settingsPatterns] = await Promise.all(
-        [
+      const [gitAttributes, changedFiles, generatedPatterns, categories] =
+        await Promise.all([
           getGitAttributes({ ...options, ref }),
           getChangedFiles(options),
-          getPatternsFromSettings(),
-        ],
-      );
+          getGeneratedPatterns(),
+          getBreakdownCategories(),
+        ]);
       logger.debug(`Found ${changedFiles.length} files`);
 
       const include: DiffEntry[] = [];
       const exclude: DiffEntry[] = [];
+      const categorized: Array<{ file: DiffEntry; categoryId?: string }> = [];
+
       changedFiles.forEach((diff) => {
         const gitAttributesEval = gitAttributes?.evaluate(diff.filename);
-        const matchingSettings = settingsPatterns.filter(({ pattern }) =>
-          minimatch(diff.filename, pattern),
-        );
         const isGitAttributesGenerated =
           !!gitAttributesEval?.attributes["linguist-generated"];
-        const isSettingsGenerated = matchingSettings.length > 0;
+        const isSettingsGenerated = matchesAnyPattern(
+          diff.filename,
+          generatedPatterns,
+        );
         const isGenerated = isGitAttributesGenerated || isSettingsGenerated;
 
         logger.debug("Is generated?", diff.filename, {
@@ -166,16 +173,41 @@ export function createGithubService(api: GithubApi): GithubService {
           isGenerated,
         });
         logger.debug("Git attributes evaluation:", gitAttributesEval);
-        logger.debug("Matched settings:", isSettingsGenerated);
 
-        if (isGenerated) exclude.push(diff);
-        else include.push(diff);
+        if (isGenerated) {
+          exclude.push(diff);
+          return;
+        }
+
+        include.push(diff);
+        // Generated files are never categorized. Everything else goes to the first matching
+        // category, or to "other" if none match.
+        const category = categories.find(({ patterns }) =>
+          matchesAnyPattern(diff.filename, patterns),
+        );
+        logger.debug("Breakdown category:", diff.filename, category?.id);
+        categorized.push({ file: diff, categoryId: category?.id });
       });
+
+      const breakdown: Record<string, DiffSummary> = {};
+      for (const { id } of categories) {
+        breakdown[id] = calculateDiffForFiles(
+          categorized
+            .filter((entry) => entry.categoryId === id)
+            .map((entry) => entry.file),
+        );
+      }
 
       const result: RecalculateResult = {
         all: calculateDiffForFiles(changedFiles),
         exclude: calculateDiffForFiles(exclude),
         include: calculateDiffForFiles(include),
+        breakdown,
+        other: calculateDiffForFiles(
+          categorized
+            .filter((entry) => entry.categoryId === undefined)
+            .map((entry) => entry.file),
+        ),
       };
       await commitHashDiffsCache.set(cacheKey, result, 2 * HOUR);
 
@@ -188,6 +220,11 @@ export function createGithubService(api: GithubApi): GithubService {
 }
 
 // Types
+
+interface ParsedCategory {
+  id: string;
+  patterns: string[];
+}
 
 export type RecalculateOptions =
   | RecalculatePrOptions
@@ -219,13 +256,31 @@ export interface RecalculateCompareOptions {
 }
 
 export interface RecalculateResult {
+  /**
+   * Every changed file.
+   */
   all: DiffSummary;
+  /**
+   * Files that are not generated. These are the numbers shown in place of GitHub's counts.
+   */
   include: DiffSummary;
+  /**
+   * Generated files, subtracted from GitHub's counts.
+   */
   exclude: DiffSummary;
+  /**
+   * Included files grouped by breakdown category id. Sums, together with `other`, to `include`.
+   */
+  breakdown: Record<string, DiffSummary>;
+  /**
+   * Included files that didn't match any breakdown category.
+   */
+  other: DiffSummary;
 }
 
 export interface DiffSummary {
   additions: number;
   deletions: number;
   changes: number;
+  files: number;
 }

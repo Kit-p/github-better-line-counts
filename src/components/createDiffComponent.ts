@@ -1,4 +1,5 @@
 import type { RecalculateResult } from "@/utils/github";
+import { getBreakdownRows, mountBreakdownCard } from "./BreakdownCard";
 
 export function createDiffComponent(options: {
   getAdditionsElement: () => HTMLElement | null | undefined;
@@ -11,6 +12,8 @@ export function createDiffComponent(options: {
   return async (statsPromise) => {
     const hideGeneratedLineCountPromise =
       hideGeneratedLineCountStorage.getValue();
+    const showBreakdownPromise = showBreakdownStorage.getValue();
+    const categoriesPromise = breakdownCategoriesStorage.getValue();
 
     const spinner = Spinner(GREY_COLOR);
     spinner.id = DIFF_COMPONENT_ID;
@@ -22,10 +25,13 @@ export function createDiffComponent(options: {
     // Wait for calculation and settings to load
 
     try {
-      const [stats, hideGeneratedLineCount] = await Promise.all([
-        statsPromise,
-        hideGeneratedLineCountPromise,
-      ]);
+      const [stats, hideGeneratedLineCount, showBreakdown, categories] =
+        await Promise.all([
+          statsPromise,
+          hideGeneratedLineCountPromise,
+          showBreakdownPromise,
+          categoriesPromise,
+        ]);
 
       // Render new counts
 
@@ -41,8 +47,9 @@ export function createDiffComponent(options: {
           stats.include.deletions,
         );
 
+      let generated: HTMLElement | undefined;
       if (!hideGeneratedLineCount) {
-        const generated = document.createElement("strong");
+        generated = document.createElement("strong");
         generated.id = DIFF_COMPONENT_ID;
         generated.textContent =
           " " + options.getGeneratedText(stats.exclude.changes);
@@ -62,6 +69,15 @@ export function createDiffComponent(options: {
         spinner.replaceWith(generated);
       } else {
         hideSpinner();
+      }
+
+      // Show the breakdown of the non-generated lines when hovering over any of the counts
+
+      if (showBreakdown) {
+        const anchors = [additions, deletions, generated].filter(
+          (element): element is HTMLElement => !!element,
+        );
+        mountBreakdownCard(anchors, getBreakdownRows(stats, categories));
       }
     } catch (err) {
       hideSpinner();

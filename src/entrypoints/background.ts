@@ -10,5 +10,10 @@ export default defineBackground(() => {
     if (reason === "install") {
       void browser.runtime.openOptionsPage();
     }
+    if (reason === "update") {
+      await Promise.all(
+        LEGACY_CACHE_STORAGE_KEYS.map((key) => storage.removeItem(key)),
+      );
+    }
   });
 });

@@ -4,3 +4,4 @@ export const DEFAULT_CUSTOM_LIST_ALL = `*.lock
 
 export const GREY_COLOR = "var(--color-fg-muted, var(--fgColor-muted))";
 export const DIFF_COMPONENT_ID = "github-better-line-counts";
+export const BREAKDOWN_CARD_ID = "github-better-line-counts-breakdown";

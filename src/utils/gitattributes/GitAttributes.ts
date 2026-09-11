@@ -1,7 +1,7 @@
 import { tokenize } from "./tokenize";
 import type { Attribute, Node, Rule } from "./parseAst";
 import { parseAst } from "./parseAst";
-import { minimatch } from "minimatch";
+import { matchesPattern } from "../patterns";
 
 export class GitAttributes {
   ast: Node[];
@@ -19,11 +19,7 @@ export class GitAttributes {
     };
 
     for (const rule of rules) {
-      const globPattern = this.getGlobPattern(rule.pattern);
-      const isMatch = minimatch(file, globPattern, {
-        dot: true, // Allow matching with files that start with "."
-      });
-      if (isMatch) {
+      if (matchesPattern(file, rule.pattern)) {
         rule.attributes.forEach((attr) => {
           res.attributes[attr.name] = attr.value;
         });
@@ -31,13 +27,6 @@ export class GitAttributes {
       }
     }
     return res;
-  }
-
-  /**
-   * Given a gitattributes pattern, change it to a glob patternt that works with minimatch.
-   */
-  private getGlobPattern(pattern: string): string {
-    return pattern.startsWith("/") ? pattern : `**/${pattern}`;
   }
 }
 
