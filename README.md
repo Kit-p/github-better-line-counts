@@ -14,9 +14,31 @@ vendor/**/*     linguist-generated
 *.gen.html      linguist-generated
 ```
 
-You can also list glob patterns in the extension's options to mark files as generated across all repos.
+The extension's options add two more layers on top of that:
 
-The breakdown shown on hover is driven by a second, ordered list of categories in the options. Each category has a name, an icon, a color, and its own glob patterns. Files are matched top to bottom and the first match wins. The breakdown never changes the line counts; it only describes what the lines are made of. Files matching no category are listed as "Other", and generated files are listed last.
+- **Generated Files**: patterns that mark files as generated across all repos. These files are subtracted from the counts, like `linguist-generated` ones.
+- **Breakdown**: an ordered list of categories, each with a name, an icon, a color, and its own patterns. Hover over the counts to see how the non-generated lines split up. Files are matched top to bottom and the first match wins; files matching no category are listed as "Other", and generated files are listed last. The breakdown never changes the counts themselves.
+
+The default categories are Agents (instruction files, rules, skills, specs, and plans for coding agents), Tests, CI/CD, Infrastructure, Database, i18n, Dependencies, Configs, and Docs, with patterns covering the conventions of the popular language ecosystems and tools. Presets for Styles, Assets, Notebooks, Schemas, Benchmarks, and Scripts are one click away.
+
+### Pattern syntax
+
+Patterns follow `.gitignore` rules, so anything copied from a `.gitignore` behaves the same way here:
+
+- A name without a slash matches at any depth: `*.md`, `Dockerfile`, `__tests__/`.
+- A pattern containing a slash is anchored to the repository root: `docs/**`, `.github/workflows/*.yml`. Prefix it with `**/` to match at any depth: `**/src/test/`.
+- A trailing slash matches everything inside a directory with that name.
+- `!` removes files matched by earlier lines; the last matching line decides.
+- Blank lines and lines starting with `#` are ignored. A backslash escapes a literal leading `#` or `!`.
+- Matching is case-insensitive, so `tests/` also covers `Tests/`.
+
+### Linguist attributes
+
+Repositories can mark files in `.gitattributes` with `linguist-generated`, `linguist-vendored`, and `linguist-documentation`. The options page maps each attribute to the generated list, to a category, or to nothing. By default generated and vendored files are subtracted and documentation goes to the Docs category. These declarations take precedence over the pattern lists.
+
+### Testing and sharing your setup
+
+The options page has a path tester that shows where a given path would land, using the lists as currently edited. Settings can also be exported to a JSON file and imported again, everything except the access token.
 
 ## Roadmap
 
@@ -24,7 +46,7 @@ The breakdown shown on hover is driven by a second, ordered list of categories i
 - [x] `v1.1.0` Support private repos via GitHub PAT
 - [x] `v1.2.0` Make the list based off your `.gitattributes`
 - [x] `v1.3.0` Show the number of generated lines next to additions and subtractions
-- [x] `v1.9.0` Show a breakdown of the non-generated lines by category when hovering over the counts
+- [x] `v2.0.0` Show a breakdown of the lines by category when hovering over the counts, with `.gitignore`-style patterns, Linguist attribute mapping, presets, a path tester, and settings import/export
 - [ ] Recalculate the 5 diff boxes next to the count
 - [ ] Add a dropdown that lists the files that were counted in the generated line count
 
