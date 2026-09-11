@@ -1,5 +1,7 @@
+/* Absolutely positioned in document coordinates rather than fixed: Firefox rasterizes fixed layers
+   differently under pinch zoom, which left color emoji at their unzoomed size. */
 .github-better-line-counts-breakdown {
-  position: fixed;
+  position: absolute;
   z-index: 1000;
   box-sizing: border-box;
   min-width: 200px;

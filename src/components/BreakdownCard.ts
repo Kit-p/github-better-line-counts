@@ -147,6 +147,17 @@ function getUnionRect(anchors: HTMLElement[]) {
 }
 
 /**
+ * Viewport rectangle of the box the card is positioned against when appended to the body.
+ */
+function getContainingBlockRect(): { left: number; top: number } {
+  const bodyIsPositioned =
+    getComputedStyle(document.body).position !== "static" &&
+    getComputedStyle(document.body).position !== "";
+  const reference = bodyIsPositioned ? document.body : document.documentElement;
+  return reference.getBoundingClientRect();
+}
+
+/**
  * The elements whose hover shows the card: the closest ancestor containing every anchor, so the
  * text between the counts (" and ") works too. Falls back to the anchors themselves when that
  * ancestor would be the whole page.
@@ -207,8 +218,11 @@ export function mountBreakdownCard(
     const top =
       above >= VIEWPORT_MARGIN_PX ? above : union.bottom + ANCHOR_GAP_PX;
 
-    card.style.left = `${left}px`;
-    card.style.top = `${top}px`;
+    // The card is absolutely positioned, so convert from viewport coordinates into its
+    // containing block (the document, or the body when the page positions it).
+    const origin = getContainingBlockRect();
+    card.style.left = `${left - origin.left}px`;
+    card.style.top = `${top - origin.top}px`;
   };
 
   const show = () => {
