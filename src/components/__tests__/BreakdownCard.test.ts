@@ -123,13 +123,23 @@ describe("getBreakdownRows", () => {
     ]);
   });
 
-  it("should return nothing when only other would be shown", () => {
+  it("should show a lone other row when nothing else matched", () => {
     const rows = getBreakdownRows(
       {
         ...stats,
         breakdown: { tests: summary(0, 0, 0) },
         exclude: summary(0, 0, 0),
       },
+      categories,
+    );
+
+    expect(rows.map((row) => row.name)).toEqual(["breakdown.other"]);
+  });
+
+  it("should return nothing when there are no files at all", () => {
+    const empty = summary(0, 0, 0);
+    const rows = getBreakdownRows(
+      { ...stats, breakdown: {}, other: empty, exclude: empty },
       categories,
     );
 

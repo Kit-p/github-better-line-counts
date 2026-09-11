@@ -19,8 +19,6 @@ const ANCHOR_GAP_PX = 6;
  * Turn the recalculated stats and the user's categories into the rows shown in the card: the
  * categories in order, then "Other" for uncategorized files, then "Generated" for the files that
  * were subtracted from the counts. Rows without any files are skipped.
- *
- * Returns an empty list when nothing but "Other" would be shown, since that says nothing.
  */
 export function getBreakdownRows(
   stats: RecalculateResult,
@@ -37,8 +35,6 @@ export function getBreakdownRows(
       summary,
     });
   }
-  const hasCategoryRows = rows.length > 0;
-
   if (stats.other.files > 0) {
     rows.push({
       name: i18n.t("breakdown.other"),
@@ -48,8 +44,7 @@ export function getBreakdownRows(
     });
   }
 
-  const hasGenerated = stats.exclude.files > 0;
-  if (hasGenerated) {
+  if (stats.exclude.files > 0) {
     rows.push({
       name: i18n.t("breakdown.generated"),
       icon: GENERATED_CATEGORY_ICON,
@@ -57,8 +52,6 @@ export function getBreakdownRows(
       summary: stats.exclude,
     });
   }
-
-  if (!hasCategoryRows && !hasGenerated) return [];
   return rows;
 }
 
