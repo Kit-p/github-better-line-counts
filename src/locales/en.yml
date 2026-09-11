@@ -23,7 +23,7 @@ breakdown:
     n: $1 files
 options:
   title: Options
-  patternHint: Patterns match at any depth unless they start with "/". A trailing "/" matches everything inside a directory. Blank lines and lines starting with "#" are ignored.
+  patternHint: Patterns use .gitignore syntax. A name without a slash matches at any depth; a pattern containing a slash is anchored to the repository root; a trailing "/" matches everything inside a directory; "!" removes files matched by earlier lines; lines starting with "#" are comments. Matching is case-insensitive.
   privateRepos:
     title: Access Private Repos
     description1: "Optional:"

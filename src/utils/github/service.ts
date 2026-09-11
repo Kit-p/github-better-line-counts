@@ -1,4 +1,5 @@
 import { GitAttributes } from "../gitattributes";
+import type { ParsedPattern } from "../patterns";
 import type { GithubApi } from "./api";
 import type { DiffEntry, User } from "./types";
 
@@ -33,7 +34,7 @@ export function createGithubService(api: GithubApi): GithubService {
   /**
    * Patterns from the options page that mark files as generated.
    */
-  async function getGeneratedPatterns(): Promise<string[]> {
+  async function getGeneratedPatterns(): Promise<ParsedPattern[]> {
     const { all } = await customListsStorage.getValue();
     return parsePatterns(all);
   }
@@ -161,7 +162,7 @@ export function createGithubService(api: GithubApi): GithubService {
         const gitAttributesEval = gitAttributes?.evaluate(diff.filename);
         const isGitAttributesGenerated =
           !!gitAttributesEval?.attributes["linguist-generated"];
-        const isSettingsGenerated = matchesAnyPattern(
+        const isSettingsGenerated = matchesPatterns(
           diff.filename,
           generatedPatterns,
         );
@@ -183,7 +184,7 @@ export function createGithubService(api: GithubApi): GithubService {
         // Generated files are never categorized. Everything else goes to the first matching
         // category, or to "other" if none match.
         const category = categories.find(({ patterns }) =>
-          matchesAnyPattern(diff.filename, patterns),
+          matchesPatterns(diff.filename, patterns),
         );
         logger.debug("Breakdown category:", diff.filename, category?.id);
         categorized.push({ file: diff, categoryId: category?.id });
@@ -223,7 +224,7 @@ export function createGithubService(api: GithubApi): GithubService {
 
 interface ParsedCategory {
   id: string;
-  patterns: string[];
+  patterns: ParsedPattern[];
 }
 
 export type RecalculateOptions =

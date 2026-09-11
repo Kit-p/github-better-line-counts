@@ -83,7 +83,6 @@ vendor/**       linguist-generated
     ["bun.lock"],
     ["packages/app/bun.lock"],
     ["vendor/lib.js"],
-    ["src/vendor/lib.js"],
     ["dist/index.js"],
   ])("should mark %s as generated", (file) => {
     expect(gitattributes.evaluate(file).attributes["linguist-generated"]).toBe(
@@ -91,12 +90,14 @@ vendor/**       linguist-generated
     );
   });
 
-  it.each([["src/index.ts"], ["packages/app/dist/index.js"]])(
-    "should not mark %s as generated",
-    (file) => {
-      expect(
-        gitattributes.evaluate(file).attributes["linguist-generated"],
-      ).toBeUndefined();
-    },
-  );
+  // Patterns containing a slash are anchored to the root, as in .gitignore
+  it.each([
+    ["src/index.ts"],
+    ["packages/app/dist/index.js"],
+    ["src/vendor/lib.js"],
+  ])("should not mark %s as generated", (file) => {
+    expect(
+      gitattributes.evaluate(file).attributes["linguist-generated"],
+    ).toBeUndefined();
+  });
 });

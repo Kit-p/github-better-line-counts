@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  matchesAnyPattern,
+  findMatch,
   matchesPattern,
+  matchesPatterns,
   parsePatterns,
   toGlob,
 } from "../patterns";
@@ -11,26 +12,51 @@ describe("parsePatterns", () => {
     const text = `
 # Lockfiles
 *.lock
-  *-lock*  
+  *-lock.*  
 
   # trailing comment line
 docs/
 `;
-    expect(parsePatterns(text)).toEqual(["*.lock", "*-lock*", "docs/"]);
+    expect(parsePatterns(text).map((p) => p.source)).toEqual([
+      "*.lock",
+      "*-lock.*",
+      "docs/",
+    ]);
   });
 
-  it("should keep a # that is not at the start of the line", () => {
-    expect(parsePatterns("foo#bar")).toEqual(["foo#bar"]);
+  it("should mark negated lines", () => {
+    expect(parsePatterns("*.md\n!README.md")).toMatchObject([
+      { source: "*.md", negated: false, glob: "**/*.md" },
+      { source: "!README.md", negated: true, glob: "**/README.md" },
+    ]);
+  });
+
+  it("should treat an escaped leading # or ! literally", () => {
+    expect(parsePatterns("\\#hash.txt\n\\!bang.txt")).toMatchObject([
+      { negated: false, glob: "**/#hash.txt" },
+      { negated: false, glob: "**/!bang.txt" },
+    ]);
+  });
+
+  it("should drop patterns that cannot match anything", () => {
+    expect(parsePatterns("/\n!\n//")).toEqual([]);
   });
 });
 
 describe("toGlob", () => {
   it.each([
+    // No slash: any depth
     ["*.md", "**/*.md"],
-    ["docs/**", "**/docs/**"],
-    ["/docs/**", "docs/**"],
+    ["Dockerfile", "**/Dockerfile"],
     ["__tests__/", "**/__tests__/**"],
+    // A slash anywhere else anchors to the root
+    ["docs/**", "docs/**"],
+    ["db/migrate/", "db/migrate/**"],
+    [".github/workflows/*.yml", ".github/workflows/*.yml"],
     ["/dist/", "dist/**"],
+    ["/README.md", "README.md"],
+    // Explicit any-depth prefix passes through
+    ["**/src/test/", "**/src/test/**"],
   ])("should convert %s to %s", (pattern, expected) => {
     expect(toGlob(pattern)).toBe(expected);
   });
@@ -38,28 +64,33 @@ describe("toGlob", () => {
 
 describe("matchesPattern", () => {
   it.each([
-    // Patterns without a slash match the basename at any depth
+    // Bare names match at any depth
     ["foo.spec.ts", "*.spec.*"],
     ["src/foo.spec.ts", "*.spec.*"],
-    ["README.md", "*.md"],
     ["docs/guide.md", "*.md"],
-    ["packages/app/pnpm-lock.yaml", "*-lock*"],
+    ["packages/app/pnpm-lock.yaml", "*-lock.*"],
     ["apps/api/Dockerfile", "Dockerfile"],
+    ["src/__tests__/nested/foo.test.ts", "__tests__/"],
     // Dotfiles and dot directories are matched
     [".eslintrc.json", "*.json"],
     [".github/PULL_REQUEST_TEMPLATE.md", "*.md"],
-    [".github/workflows/ci.yml", ".github/workflows/*.yml"],
     [".nvmrc", ".*rc"],
-    // Patterns with a slash also match at any depth unless anchored
+    // Slashes anchor to the root
     ["docs/guide.md", "docs/**"],
-    ["packages/app/docs/guide.md", "docs/**"],
-    ["docs/guide.md", "/docs/**"],
-    // A trailing slash matches everything inside the directory
-    ["src/__tests__/foo.test.ts", "__tests__/"],
-    ["src/__tests__/nested/foo.test.ts", "__tests__/"],
-    // Braces and extglobs are supported
-    [".github/workflows/ci.yaml", ".github/workflows/*.{yml,yaml}"],
-    ["serverless.yml", "serverless.y?(a)ml"],
+    [".github/workflows/ci.yml", ".github/workflows/*.yml"],
+    ["dist/index.js", "/dist/"],
+    ["README.md", "/README.md"],
+    // "**" works in the middle and as an explicit prefix
+    ["packages/app/docs/guide.md", "**/docs/**"],
+    ["a/x/y/b.txt", "a/**/b.txt"],
+    ["a/b.txt", "a/**/b.txt"],
+    // Case-insensitive
+    ["Dockerfile", "dockerfile"],
+    ["src/Migrations/001.cs", "migrations/"],
+    ["Tests/AppTests/FooTests.swift", "tests/"],
+    // Single-character and class wildcards
+    ["file1.txt", "file?.txt"],
+    ["main.c", "*.[ch]"],
   ])("should match %s against %s", (file, pattern) => {
     expect(matchesPattern(file, pattern)).toBe(true);
   });
@@ -67,26 +98,54 @@ describe("matchesPattern", () => {
   it.each([
     ["Dockerfile.md", "Dockerfile"],
     ["src/foo.ts", "*.spec.*"],
-    ["packages/app/docs/guide.md", "/docs/**"],
     ["src/__tests__", "__tests__/"],
-    ["deadlock.ts", "*-lock*"],
-    // A leading "!" is not treated as negation
-    ["bar", "!foo"],
+    ["deadlock.ts", "*-lock.*"],
+    // Anchored patterns do not match deeper copies
+    ["packages/app/docs/guide.md", "docs/**"],
+    ["pkg/.github/workflows/ci.yml", ".github/workflows/*.yml"],
+    ["src/dist/index.js", "/dist/"],
+    ["docs/README.md", "/README.md"],
+    // gitignore has no brace expansion or extglobs
+    ["ci.yml", "*.{yml,yaml}"],
+    ["serverless.yml", "serverless.y?(a)ml"],
   ])("should not match %s against %s", (file, pattern) => {
     expect(matchesPattern(file, pattern)).toBe(false);
   });
 });
 
-describe("matchesAnyPattern", () => {
-  it("should return true when any pattern matches", () => {
-    expect(matchesAnyPattern("src/a.test.ts", ["*.md", "*.test.*"])).toBe(true);
+describe("matchesPatterns", () => {
+  it("should let the last matching line decide", () => {
+    const patterns = parsePatterns("*.md\n!README.md");
+
+    expect(matchesPatterns("docs/guide.md", patterns)).toBe(true);
+    expect(matchesPatterns("README.md", patterns)).toBe(false);
+    expect(matchesPatterns("docs/README.md", patterns)).toBe(false);
   });
 
-  it("should return false when no pattern matches", () => {
-    expect(matchesAnyPattern("src/a.ts", ["*.md", "*.test.*"])).toBe(false);
+  it("should re-select a file negated by an earlier line", () => {
+    const patterns = parsePatterns("*.md\n!README.md\n/README.md");
+
+    expect(matchesPatterns("README.md", patterns)).toBe(true);
+    expect(matchesPatterns("docs/README.md", patterns)).toBe(false);
+  });
+
+  it("should not select a file that only matches a negated line", () => {
+    expect(matchesPatterns("README.md", parsePatterns("!README.md"))).toBe(
+      false,
+    );
   });
 
   it("should return false for an empty list", () => {
-    expect(matchesAnyPattern("src/a.ts", [])).toBe(false);
+    expect(matchesPatterns("src/a.ts", [])).toBe(false);
+  });
+});
+
+describe("findMatch", () => {
+  it("should report the deciding line", () => {
+    const patterns = parsePatterns("*.md\n!README.md");
+
+    expect(findMatch("README.md", patterns)?.source).toBe("!README.md");
+    expect(findMatch("docs/guide.md", patterns)?.source).toBe("*.md");
+    expect(findMatch("src/a.ts", patterns)).toBeUndefined();
   });
 });
