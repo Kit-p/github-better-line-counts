@@ -18,6 +18,65 @@ function sentHeaders(fetchMock: ReturnType<typeof stubFetch>): Headers {
   return new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
 }
 
+describe("GithubApi commit files", () => {
+  beforeEach(() => {
+    fakeBrowser.reset();
+  });
+
+  function commitResponse(count: number) {
+    return new Response(
+      JSON.stringify({
+        sha: "abc",
+        stats: { additions: 0, deletions: 0, total: 0 },
+        files: Array.from({ length: count }, (_, i) => ({ filename: `f${i}` })),
+      }),
+      { headers: { "content-type": "application/json" } },
+    );
+  }
+
+  it("should fetch further pages while a page is full", async () => {
+    const fetchMock = vi
+      .fn(
+        async (_input: RequestInfo | URL, _init?: RequestInit) =>
+          new Response(),
+      )
+      .mockResolvedValueOnce(commitResponse(300))
+      .mockResolvedValueOnce(commitResponse(300))
+      .mockResolvedValueOnce(commitResponse(20));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const commit = await createGithubApi().getCommit({
+      owner: "owner",
+      repo: "repo",
+      ref: "abc",
+    });
+
+    expect(commit.files).toHaveLength(620);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain("page=2");
+    expect(String(fetchMock.mock.calls[2]?.[0])).toContain("page=3");
+  });
+
+  it("should stop after the first page for small commits", async () => {
+    const fetchMock = vi
+      .fn(
+        async (_input: RequestInfo | URL, _init?: RequestInit) =>
+          new Response(),
+      )
+      .mockResolvedValueOnce(commitResponse(5));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const commit = await createGithubApi().getCommit({
+      owner: "owner",
+      repo: "repo",
+      ref: "abc",
+    });
+
+    expect(commit.files).toHaveLength(5);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("GithubApi authentication", () => {
   beforeEach(() => {
     fakeBrowser.reset();

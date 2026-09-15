@@ -1,6 +1,6 @@
 import { GitAttributes } from "../gitattributes";
 import { classifyFile, type Classifier } from "../classify";
-import type { GithubApi } from "./api";
+import { FILES_PAGE_SIZE, type GithubApi } from "./api";
 import type { DiffEntry, User } from "./types";
 
 export interface GithubService {
@@ -110,19 +110,28 @@ export function createGithubService(api: GithubApi): GithubService {
     return { changes, additions, deletions, files: files.length };
   }
 
+  /**
+   * Every changed file, and whether GitHub cut the list short. Pull requests and commits paginate,
+   * but the compare endpoint returns at most `FILES_PAGE_SIZE` files with no way to get the rest.
+   */
   async function getChangedFiles(
     options: ResolvedOptions,
-  ): Promise<DiffEntry[]> {
-    if (options.type === "pr") return api.getAllPrFiles(options);
+  ): Promise<{ files: DiffEntry[]; truncated: boolean }> {
+    if (options.type === "pr") {
+      return { files: await api.getAllPrFiles(options), truncated: false };
+    }
 
     if (options.type === "commit") {
       const commit = await api.getCommit(options);
-      return commit.files;
+      return { files: commit.files, truncated: false };
     }
 
     if (options.type === "compare") {
       const comparison = await api.compareCommits(options);
-      return comparison.files;
+      return {
+        files: comparison.files,
+        truncated: comparison.files.length >= FILES_PAGE_SIZE,
+      };
     }
 
     throw Error(`Not implemented: getChangedFiles(${JSON.stringify(options)})`);
@@ -157,12 +166,13 @@ export function createGithubService(api: GithubApi): GithubService {
       // 10s sleep for testing loading UI
       // await sleep(10e3);
 
-      const [gitAttributes, changedFiles, classifier] = await Promise.all([
-        getGitAttributes({ ...options, ref }),
-        getChangedFiles(options),
-        getClassifier(),
-      ]);
-      logger.debug(`Found ${changedFiles.length} files`);
+      const [gitAttributes, { files: changedFiles, truncated }, classifier] =
+        await Promise.all([
+          getGitAttributes({ ...options, ref }),
+          getChangedFiles(options),
+          getClassifier(),
+        ]);
+      logger.debug(`Found ${changedFiles.length} files`, { truncated });
 
       const include: DiffEntry[] = [];
       const exclude: DiffEntry[] = [];
@@ -210,6 +220,7 @@ export function createGithubService(api: GithubApi): GithubService {
             .filter((entry) => entry.categoryId === undefined)
             .map((entry) => entry.file),
         ),
+        truncated,
       };
       await commitHashDiffsCache.set(cacheKey, result, 2 * HOUR);
 
@@ -286,6 +297,10 @@ export interface RecalculateResult {
    * Included files that didn't match any breakdown category.
    */
   other: DiffSummary;
+  /**
+   * True when GitHub returned only part of the file list, so every number above is incomplete.
+   */
+  truncated: boolean;
 }
 
 export interface DiffSummary {

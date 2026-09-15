@@ -221,6 +221,37 @@ describe("GithubService", () => {
     );
   });
 
+  it("should flag a comparison that hit GitHub's file cap", async () => {
+    const many = Array.from({ length: 300 }, (_, i) =>
+      file(`src/${i}.ts`, 1, 0),
+    );
+    const api = createFakeApi(many);
+    const service = createGithubService(api);
+
+    const result = await service.recalculateDiff({
+      mountId: 1,
+      type: "compare",
+      owner: "owner",
+      repo: "repo",
+      base: "main",
+      head: "feat",
+    });
+
+    expect(result.truncated).toBe(true);
+    expect(result.all.files).toBe(300);
+  });
+
+  it("should not flag pull requests, whose files are fully paginated", async () => {
+    const many = Array.from({ length: 300 }, (_, i) =>
+      file(`src/${i}.ts`, 1, 0),
+    );
+    const service = createGithubService(createFakeApi(many));
+
+    const result = await service.recalculateDiff(prOptions(1));
+
+    expect(result.truncated).toBe(false);
+  });
+
   it("should reuse the cached result for the same commit", async () => {
     const api = createFakeApi(files, gitattributes);
     const service = createGithubService(api);

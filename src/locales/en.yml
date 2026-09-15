@@ -15,6 +15,8 @@ diffs:
   additionsSymbol: +$1
   deletionsSymbol: −$1
   generatedSymbol: ⌁$1
+  truncated: ⌁ N/A
+  truncatedTitle: GitHub's API returns at most $1 files for a comparison and this one has more, so the counts were left as GitHub shows them and no breakdown is available.
 breakdown:
   other: Other
   generated: Generated

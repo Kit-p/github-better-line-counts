@@ -9,6 +9,17 @@ import type {
   User,
 } from "./types";
 
+/**
+ * GitHub returns at most this many files per request. Commits page beyond it; comparisons stop
+ * there for good.
+ */
+export const FILES_PAGE_SIZE = 300;
+
+/**
+ * Commit file lists are paginated up to 3,000 files.
+ */
+const MAX_FILE_PAGES = 10;
+
 export function createGithubApi() {
   /**
    * Fetch with some default headers and authentication.
@@ -93,16 +104,26 @@ export function createGithubApi() {
     },
 
     /**
-     * Load information about a commit.
+     * Load information about a commit, including every changed file. GitHub paginates the file
+     * list when a commit touches more than `FILES_PAGE_SIZE` files.
      */
     async getCommit(options: {
       owner: string;
       repo: string;
       ref: string;
     }): Promise<Commit> {
-      return await fetch<Commit>(
-        `/repos/${options.owner}/${options.repo}/commits/${options.ref}`,
-      );
+      const url = `/repos/${options.owner}/${options.repo}/commits/${options.ref}`;
+      const commit = await fetch<Commit>(url);
+
+      let lastPage = commit.files;
+      let page = 1;
+      while (lastPage.length >= FILES_PAGE_SIZE && page < MAX_FILE_PAGES) {
+        page++;
+        logger.debug("Fetching commit files page:", page);
+        lastPage = (await fetch<Commit>(`${url}?page=${page}`)).files;
+        commit.files = [...commit.files, ...lastPage];
+      }
+      return commit;
     },
 
     /**

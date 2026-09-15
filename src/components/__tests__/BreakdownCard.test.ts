@@ -63,6 +63,7 @@ const stats: RecalculateResult = {
     empty: summary(0, 0, 0),
   },
   other: summary(40, 10, 1),
+  truncated: false,
 };
 
 /** jsdom normalizes colors, so compare against what it produces for the same input. */

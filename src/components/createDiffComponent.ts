@@ -1,4 +1,4 @@
-import type { RecalculateResult } from "@/utils/github";
+import { FILES_PAGE_SIZE, type RecalculateResult } from "@/utils/github";
 import { getBreakdownRows, mountBreakdownCard } from "./BreakdownCard";
 
 /**
@@ -77,10 +77,28 @@ export function createDiffComponent(options: {
           categoriesPromise,
         ]);
 
-      // Render new counts
-
       const additions = options.getAdditionsElement();
       const deletions = options.getDeletionsElement();
+
+      // With only part of the file list, no number would be right. Leave the page alone and say
+      // why in place of the generated count.
+      if (stats.truncated) {
+        const note = document.createElement("strong");
+        note.id = DIFF_COMPONENT_ID;
+        note.textContent = " " + i18n.t("diffs.truncated");
+        note.title = i18n.t("diffs.truncatedTitle", [String(FILES_PAGE_SIZE)]);
+        note.style.color = GREY_COLOR;
+        note.classList.add(
+          ...[...(additions?.classList ?? [])].filter(
+            (className) => !className.toLowerCase().includes("fg"),
+          ),
+        );
+        spinner.replaceWith(note);
+        return;
+      }
+
+      // Render new counts
+
       const generatedText = options.getGeneratedText(
         stats.exclude.changes,
         additions,
