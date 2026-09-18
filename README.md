@@ -54,7 +54,7 @@ That's it. Very simple, targeted extension for fixing 1 problem with GitHub.
 
 ## Development
 
-You must use [Bun](https://bun.sh/) with this repo.
+You must use [Bun](https://bun.sh/) with this repo. Branch, commit, build, and release conventions are described in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 Install dependencies:
 
